@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Pi Bird Master - Worldwide</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #333; font-family: 'Segoe UI', sans-serif; }
+        canvas { display: block; margin: 0 auto; background: #70c5ce; touch-action: none; }
+        
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; z-index: 5; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        .score-box { font-size: 50px; font-weight: bold; margin: 0; }
+        .high-score-box { font-size: 18px; color: #FFD700; text-transform: uppercase; margin-top: -5px; }
+
+        #muteBtn { position: absolute; top: 20px; right: 20px; width: 45px; height: 45px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; font-size: 22px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+
+        #leaderboard { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 85%; max-width: 360px; border-radius: 20px; padding: 25px; text-align: center; display: none; z-index: 20; border: 3px solid #612d8a; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        #leaderboard h2 { margin: 0 0 20px; color: #612d8a; font-size: 24px; }
+        .lb-row { display: flex; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid #eee; font-size: 15px; color: #333; }
+        .lb-row.active { background: rgba(97, 45, 138, 0.15); font-weight: bold; border-radius: 10px; color: #612d8a; }
+        #restartBtn { background: #612d8a; color: white; border: none; padding: 15px; border-radius: 30px; font-size: 18px; font-weight: bold; margin-top: 25px; cursor: pointer; width: 100%; transition: 0.2s; }
+        #restartBtn:active { transform: scale(0.95); }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <p class="score-box" id="score">0</p>
+        <p class="high-score-box">BEST: <span id="highScore">0</span></p>
+    </div>
+
+    <button id="muteBtn">🔊</button>
+
+    <div id="leaderboard">
+        <h2>GLOBAL RANKINGS</h2>
+        <div id="lb-content"></div>
+        <button id="restartBtn">TRY AGAIN</button>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const highScoreEl = document.getElementById("highScore");
+    const muteBtn = document.getElementById("muteBtn");
+    const leaderboard = document.getElementById("leaderboard");
+    const lbContent = document.getElementById("lb-content");
+    const restartBtn = document.getElementById("restartBtn");
+
+    canvas.width = Math.min(window.innerWidth, 450);
+    canvas.height = window.innerHeight;
+
+    // --- SOUND SYSTEM ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    let isMuted = false;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playNote(freq, type, duration, vol) {
+        if (isMuted || !audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+    }
+
+    // --- GAME VARIABLES ---
+    const config = { gravity: 0.25, jump: -4.8, pipeGap: 190, pipeSpeed: 2.5, pipeWidth: 65 };
+    let bird = { x: 50, y: canvas.height/2, velocity: 0, radius: 14 };
+    let pipes = [];
+    let score = 0;
+    let frame = 0;
+    let gameActive = false;
+    let showMsg = true;
+    let hScore = localStorage.getItem("piBirdHScore") || 0;
+    highScoreEl.innerText = hScore;
+
+    const melody = [262, 330, 392, 523, 392, 330];
+
+    function drawBird() {
+        ctx.save();
+        ctx.translate(bird.x, bird.y);
+        // Body
+        ctx.fillStyle = "#A52A2A"; ctx.beginPath(); ctx.ellipse(0, 0, 18, 14, 0, 0, Math.PI*2); ctx.fill();
+        // Belly
+        ctx.fillStyle = "#FFF"; ctx.beginPath(); ctx.ellipse(0, 5, 12, 8, 0, 0, Math.PI*2); ctx.fill();
+        // Beak
+        ctx.fillStyle = "orange"; ctx.beginPath(); ctx.moveTo(15, -2); ctx.lineTo(25, 0); ctx.lineTo(15, 2); ctx.fill();
+        // Eye
+        ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(10, -5, 2.5, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
+    }
+
+    function drawPi(x, y) {
+        ctx.fillStyle = "#FFD700";
+        ctx.font = "bold 30px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText("π", x + config.pipeWidth/2, y);
+    }
+
+    function update() {
+        if (!gameActive) return;
+
+        // Music
+        if (frame % 15 === 0) playNote(melody[(frame/15) % melody.length], 'triangle', 0.2, 0.03);
+
+        bird.velocity += config.gravity;
+        bird.y += bird.velocity;
+
+        if (frame % 90 === 0) {
+            let topH = Math.random() * (canvas.height - config.pipeGap - 120) + 60;
+            pipes.push({ x: canvas.width, top: topH, passed: false });
+        }
+
+        for (let i = pipes.length - 1; i >= 0; i--) {
+            pipes[i].x -= config.pipeSpeed;
+
+            // Collision check (Hitbox optimization)
+            if (bird.x + 12 > pipes[i].x && bird.x - 12 < pipes[i].x + config.pipeWidth) {
+                if (bird.y - 12 < pipes[i].top || bird.y + 12 > pipes[i].top + config.pipeGap) {
+                    endGame();
+                }
+            }
+
+            if (!pipes[i].passed && pipes[i].x < bird.x) {
+                score++;
+                scoreEl.innerText = score;
+                pipes[i].passed = true;
+                playNote(880, 'sine', 0.2, 0.08);
+            }
+
+            if (pipes[i].x < -config.pipeWidth) pipes.splice(i, 1);
+        }
+
+        if (bird.y > canvas.height || bird.y < 0) endGame();
+        frame++;
+    }
+
+    function render() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        pipes.forEach(p => {
+            ctx.fillStyle = "#612d8a";
+            ctx.fillRect(p.x, 0, config.pipeWidth, p.top);
+            ctx.fillRect(p.x, p.top + config.pipeGap, config.pipeWidth, canvas.height);
+            drawPi(p.x, p.top - 20);
+            drawPi(p.x, p.top + config.pipeGap + 40);
+        });
+
+        drawBird();
+
+        if (showMsg) {
+            ctx.fillStyle = "rgba(0,0,0,0.4)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "white"; ctx.textAlign = "center";
+            ctx.font = "bold 26px Arial"; ctx.fillText("TAP TO START", canvas.width/2, canvas.height/2);
+            ctx.font = "16px Arial"; ctx.fillText("WORLDWIDE CHALLENGE", canvas.width/2, canvas.height/2 + 40);
+        }
+    }
+
+    function endGame() {
+        gameActive = false;
+        playNote(150, 'sawtooth', 0.5, 0.15);
+        if (score > hScore) {
+            hScore = score;
+            localStorage.setItem("piBirdHScore", hScore);
+            highScoreEl.innerText = hScore;
+        }
+        showLeaderboard();
+    }
+
+    function showLeaderboard() {
+        const players = [
+            { n: "Master 🇰🇷", s: Math.max(hScore, 25) },
+            { n: "YOU 🇻🇳", s: score, isMe: true },
+            { n: "Pioneer 🇺🇸", s: Math.floor(score * 0.8) + 2 },
+            { n: "Node 🇩🇪", s: Math.floor(hScore * 0.9) },
+            { n: "PiFan 🇯🇵", s: Math.floor(score * 0.5) + 1 }
+        ].sort((a,b) => b.s - a.s);
+
+        lbContent.innerHTML = players.map((p, i) => `
+            <div class="lb-row ${p.isMe ? 'active' : ''}">
+                <span>#${i+1} ${p.n}</span>
+                <span>${p.s}</span>
+            </div>
+        `).join('');
+        leaderboard.style.display = "block";
+    }
+
+    function reset() {
+        bird.y = canvas.height/2; bird.velocity = 0;
+        pipes = []; score = 0; frame = 0;
+        scoreEl.innerText = 0;
+        leaderboard.style.display = "none";
+        gameActive = true; showMsg = false;
+    }
+
+    function loop() { update(); render(); requestAnimationFrame(loop); }
+
+    const handleAction = (e) => {
+        if (e.target.id === 'muteBtn' || e.target.id === 'restartBtn') return;
+        if (leaderboard.style.display === "block") return;
+        initAudio();
+        if (!gameActive && showMsg) { reset(); }
+        bird.velocity = config.jump;
+        playNote(400, 'square', 0.1, 0.04);
+    };
+
+    muteBtn.onclick = () => { isMuted = !isMuted; muteBtn.innerText = isMuted ? "🔇" : "🔊"; muteBtn.blur(); };
+    restartBtn.onclick = reset;
+    window.onmousedown = handleAction;
+    window.ontouchstart = (e) => { e.preventDefault(); handleAction(e); };
+
+    loop();
+</script>
+</body>
+</html>
