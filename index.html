@@ -40,14 +40,13 @@
     let audioCtx = null, isMuted = false;
     function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
 
-    // Tăng âm lượng to lên (vol x3)
     function playSfx(freq, type, duration, vol, isWing = false) {
         if (isMuted || !audioCtx) return;
         const o = audioCtx.createOscillator(), g = audioCtx.createGain();
         o.type = type;
         o.frequency.setValueAtTime(freq, audioCtx.currentTime);
         if (isWing) o.frequency.exponentialRampToValueAtTime(freq * 0.4, audioCtx.currentTime + duration);
-        g.gain.setValueAtTime(vol * 3, audioCtx.currentTime); // Âm thanh to hơn
+        g.gain.setValueAtTime(vol * 3, audioCtx.currentTime);
         g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
         o.connect(g); g.connect(audioCtx.destination);
         o.start(); o.stop(audioCtx.currentTime + duration);
@@ -55,45 +54,49 @@
 
     const cfg = { gravity: 0.26, jump: -5.2, gap: 175, speed: 3.0, pipeWidth: 70 };
     let bird = { x: 70, y: canvas.height/2, v: 0 };
-    let pipes = [], clouds = [], score = 0, frame = 0, active = false, showMsg = true;
+    let pipes = [], clouds = [], score = 0, frameCount = 0, active = false, showMsg = true;
     let hScore = localStorage.getItem("piBirdHScore") || 0;
     highScoreEl.innerText = hScore;
     const melody = [262, 330, 392, 523, 392, 330];
 
-    // Khởi tạo mây sinh động
+    // Biến điều khiển tốc độ (Delta Time)
+    let lastTime = 0;
+    let accumulator = 0;
+    const deltaTime = 1000 / 60; // Mục tiêu 60 FPS cố định
+
     for(let i=0; i<4; i++) clouds.push({x: Math.random()*canvas.width, y: Math.random()*200, s: 0.5 + Math.random()});
 
     function drawBird() {
         ctx.save(); ctx.translate(bird.x, bird.y);
         ctx.rotate(Math.min(Math.PI/6, Math.max(-Math.PI/6, bird.v * 0.1)));
-        // Sparrow Body
         ctx.fillStyle = "#FFD700"; ctx.beginPath(); ctx.ellipse(0, 0, 19, 15, 0, 0, Math.PI*2); ctx.fill();
         ctx.strokeStyle = "#B8860B"; ctx.lineWidth = 2; ctx.stroke();
-        // Wing
         ctx.fillStyle = "#FFF"; ctx.beginPath(); ctx.ellipse(-6, 2, 11, 7, 0.2, 0, Math.PI*2); ctx.fill();
-        // Eye & Beak
         ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(11, -6, 3, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle = "#FF4500"; ctx.beginPath(); ctx.moveTo(16, -2); ctx.lineTo(26, 0); ctx.lineTo(16, 2); ctx.fill();
         ctx.restore();
     }
 
     function drawScene() {
-        // Vẽ mây
         ctx.fillStyle = "rgba(255,255,255,0.7)";
         clouds.forEach(c => {
             ctx.beginPath(); ctx.arc(c.x, c.y, 20, 0, 7); ctx.arc(c.x+15, c.y-10, 25, 0, 7); ctx.arc(c.x+35, c.y, 20, 0, 7); ctx.fill();
             if(active) c.x -= c.s; if(c.x < -100) c.x = canvas.width + 100;
         });
-        // Vẽ cỏ
         ctx.fillStyle = "#73bf2e"; ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
         ctx.fillStyle = "#ded895"; ctx.fillRect(0, canvas.height - 55, canvas.width, 5);
     }
 
+    // Logic xử lý chính (Fixed Update)
     function update() {
         if (!active) return;
-        if (frame % 20 === 0) playSfx(melody[(frame/20) % melody.length], 'triangle', 0.2, 0.02);
-        bird.v += cfg.gravity; bird.y += bird.v;
-        if (frame % 80 === 0) pipes.push({ x: canvas.width, t: Math.random() * (canvas.height - cfg.gap - 150) + 70, ok: false });
+        if (frameCount % 20 === 0) playSfx(melody[(frameCount/20) % melody.length], 'triangle', 0.2, 0.02);
+        
+        bird.v += cfg.gravity; 
+        bird.y += bird.v;
+
+        if (frameCount % 80 === 0) pipes.push({ x: canvas.width, t: Math.random() * (canvas.height - cfg.gap - 150) + 70, ok: false });
+        
         for (let i = pipes.length - 1; i >= 0; i--) {
             pipes[i].x -= cfg.speed;
             if (bird.x + 14 > pipes[i].x && bird.x - 14 < pipes[i].x + cfg.pipeWidth) {
@@ -106,7 +109,7 @@
             if (pipes[i].x < -cfg.pipeWidth) pipes.splice(i, 1);
         }
         if (bird.y > canvas.height - 50 || bird.y < 0) endGame();
-        frame++;
+        frameCount++;
     }
 
     function render() {
@@ -139,7 +142,11 @@
         leaderboard.style.display = "block";
     }
 
-    function reset() { bird.y = canvas.height/2; bird.v = 0; pipes = []; score = 0; frame = 0; scoreEl.innerText = 0; leaderboard.style.display = "none"; active = true; showMsg = false; }
+    function reset() { 
+        bird.y = canvas.height/2; bird.v = 0; pipes = []; score = 0; frameCount = 0; 
+        scoreEl.innerText = 0; leaderboard.style.display = "none"; active = true; showMsg = false; 
+        lastTime = performance.now(); // Reset lại mốc thời gian
+    }
 
     const jump = (e) => {
         if (e.target.id === 'muteBtn' || e.target.id === 'restartBtn') return;
@@ -153,8 +160,27 @@
     window.onmousedown = jump;
     window.ontouchstart = (e) => { if (e.target.id !== 'muteBtn' && e.target.id !== 'restartBtn') e.preventDefault(); jump(e); };
 
-    function loop() { update(); render(); requestAnimationFrame(loop); }
-    loop();
+    // Vòng lặp game mới: Tách biệt Render và Update
+    function loop(currentTime) {
+        if (!lastTime) lastTime = currentTime;
+        let elapsed = currentTime - lastTime;
+        lastTime = currentTime;
+
+        // Giới hạn elapsed để tránh nhảy vọt khi quay lại tab
+        if (elapsed > 100) elapsed = deltaTime; 
+
+        accumulator += elapsed;
+
+        // Chạy update dựa trên bước thời gian cố định (60 lần mỗi giây thực tế)
+        while (accumulator >= deltaTime) {
+            update();
+            accumulator -= deltaTime;
+        }
+
+        render();
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
 </script>
 </body>
 </html>
