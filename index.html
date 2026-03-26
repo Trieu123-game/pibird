@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover">
     <title>Flappi Sky Master - Pioneer Edition</title>
     <style>
-        /* CSS Giữ nguyên giao diện của bạn */
+        /* CSS GIỮ NGUYÊN GIAO DIỆN CỦA BẠN VÀ THÊM MỘT SỐ UI MỚI */
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
             overflow: hidden; background: #222; font-family: 'Segoe UI', sans-serif; 
@@ -16,64 +16,137 @@
         }
         #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; pointer-events: none; z-index: 5; text-shadow: 2px 2px 5px rgba(0,0,0,0.7); }
         .score-box { font-size: 60px; font-weight: bold; margin: 0; }
-        .high-score-box { font-size: 20px; color: #FFD700; text-transform: uppercase; margin-top: -5px; }
-        #muteBtn { position: absolute; top: 20px; right: 20px; width: 50px; height: 50px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; font-size: 24px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        .high-score-box { font-size: 18px; color: #FFD700; text-transform: uppercase; margin-top: -5px; }
+        
+        /* CÁC NÚT ĐIỀU KHIỂN */
+        #muteBtn { position: absolute; top: 20px; right: 20px; width: 45px; height: 45px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        #shopBtn { position: absolute; top: 20px; left: 20px; width: 45px; height: 45px; background: rgba(255,255,255,0.9); border: none; border-radius: 50%; font-size: 20px; cursor: pointer; z-index: 10; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+        
+        /* BẢNG XẾP HẠNG & GAME OVER */
         #leaderboard { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; width: 85%; max-width: 360px; border-radius: 20px; padding: 25px; text-align: center; display: none; z-index: 20; border: 4px solid #612d8a; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
-        #restartBtn { background: #612d8a; color: white; border: none; padding: 16px; border-radius: 35px; font-size: 20px; font-weight: bold; margin-top: 25px; cursor: pointer; width: 100%; }
-        #pioneer-name { font-size: 14px; color: #eee; margin-bottom: 5px; }
+        .game-over-title { color: #612d8a; font-size: 32px; font-weight: bold; margin-top: 0; margin-bottom: 15px; }
+        #restartBtn { background: #612d8a; color: white; border: none; padding: 14px; border-radius: 30px; font-size: 18px; font-weight: bold; margin-top: 20px; cursor: pointer; width: 100%; box-shadow: 0 5px 15px rgba(97,45,138,0.4); }
+        #reviveBtn { background: #FFD700; color: #333; border: none; padding: 14px; border-radius: 30px; font-size: 16px; font-weight: bold; margin-top: 10px; cursor: pointer; width: 100%; display: none; box-shadow: 0 5px 15px rgba(255,215,0,0.4); }
+        #reviveBtn span { font-size: 12px; font-weight: normal; }
+
+        /* CỬA HÀNG SKIN */
+        #shopMenu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; width: 85%; max-width: 360px; border-radius: 20px; padding: 25px; text-align: center; display: none; z-index: 30; border: 4px solid #FFD700; box-shadow: 0 15px 40px rgba(0,0,0,0.6); }
+        .shop-title { color: #B8860B; font-size: 28px; font-weight: bold; margin-top: 0; margin-bottom: 20px; }
+        .skin-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #eee; border-radius: 12px; margin-bottom: 10px; cursor: pointer; transition: background 0.2s; }
+        .skin-item:hover { background: #f9f9f9; }
+        .skin-item.active { border: 2px solid #FFD700; background: #fffdf0; }
+        .skin-name { font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .skin-icon { width: 30px; height: 30px; border-radius: 50%; display: inline-block; }
+        .skin-price { color: #612d8a; font-weight: bold; }
+        #closeShopBtn { background: #eee; color: #333; border: none; padding: 10px; border-radius: 20px; font-size: 16px; margin-top: 20px; cursor: pointer; width: 100%; }
+        
+        /* THÔNG TIN NGƯỜI DÙNG */
+        #user-info { font-size: 14px; color: #eee; margin-bottom: 5px; display: flex; flex-direction: column; align-items: center; }
+        #pi-balance { color: #FFD700; font-weight: bold; font-size: 16px; margin-top: 3px; }
+        
+        /* LOADING QUẢNG CÁO */
+        #adOverlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: white; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; font-size: 24px; font-weight: bold; }
+        #adTimer { font-size: 48px; color: #FFD700; margin-top: 15px; }
     </style>
     
     <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 
     <script>
-      // 1. Khởi tạo Pi SDK (Chế độ Sandbox để test)
+      // 1. KHỞI TẠO PI SDK
       Pi.init({ version: "2.0", sandbox: true });
 
       let currentUser = "Pioneer";
+      let userPiBalance = "0.00";
+      let ownedSkins = JSON.parse(localStorage.getItem("piBirdSkins")) || ['Default'];
+      let currentSkin = localStorage.getItem("piBirdCurrentSkin") || 'Default';
+      let revivedCount = 0; // Đếm số lần hồi sinh
 
-      async function auth() {
+      // 2. XÁC THỰC VÀ LẤY THÔNG TIN
+      async function authAndLoadData() {
         try {
-          // 2. Xin quyền lấy tên người dùng (Không cần dán API Key trực tiếp vào đây để bảo mật)
-          const scopes = ['username'];
-          const onIncompletePaymentFound = (payment) => { /* Xử lý thanh toán dở dang nếu có */ };
+          // Xin quyền lấy tên người dùng và thực hiện thanh toán
+          const scopes = ['username', 'payments'];
+          const onIncompletePaymentFound = (payment) => { 
+            console.log("Tìm thấy thanh toán dở dang:", payment);
+            // Xử lý logic trên server của bạn nếu cần
+          };
           
           const user = await Pi.authenticate(scopes, onIncompletePaymentFound);
           
-          // Đổi tên trên giao diện khi đăng nhập thành công
           currentUser = user.user.username;
-          document.getElementById("pioneer-name").innerText = "HELLO: " + currentUser;
+          
+          // Lấy số dư ví (Testnet)
+          // userPiBalance = user.user.balance; // Hàm này có thể thay đổi theo phiên bản SDK, bạn cần kiểm tra tài liệu
+          // Giả lập số dư vì SDK Testnet không cung cấp trực tiếp
+          userPiBalance = "100.00"; 
+          
+          document.getElementById("pioneer-name").innerText = "PIONEER: " + currentUser;
+          document.getElementById("pi-balance").innerText = userPiBalance + " π TESTNET";
+          
           console.log("Đã kết nối với: " + currentUser);
+          updateShopUI(); // Cập nhật giao diện shop sau khi load xong data
           
         } catch (err) {
-          console.error("Không kết nối được Pi Network. Hãy mở bằng Pi Browser:", err);
+          console.error("Lỗi kết nối Pi:", err);
+          document.getElementById("pioneer-name").innerText = "LỖI KẾT NỐI PI";
         }
       }
 
       // Tự động chạy lệnh kết nối khi mở game
-      auth();
+      authAndLoadData();
     </script>
 </head>
 <body>
 
     <div id="ui">
-        <div id="pioneer-name">CONNECTING PI...</div>
+        <div id="user-info">
+            <span id="pioneer-name">CONNECTING PI...</span>
+            <span id="pi-balance">LOAD BALANCE...</span>
+        </div>
         <p class="score-box" id="score">0</p>
         <p class="high-score-box">WORLD RECORD: <span id="highScore">0</span></p>
     </div>
     <button id="muteBtn">🔊</button>
+    <button id="shopBtn">🛒</button>
+    
     <div id="leaderboard">
-        <h2 style="color:#612d8a; margin-top:0;">GLOBAL RANKINGS</h2>
+        <p class="game-over-title">MISSION OVER!</p>
         <div id="lb-content"></div>
-        <button id="restartBtn">START MISSION</button>
+        <button id="reviveBtn">XEM QC ĐỂ HỒI SINH <span>(1 lần/lượt)</span></button>
+        <button id="restartBtn">RESTART MISSION</button>
     </div>
+    
+    <div id="shopMenu">
+        <p class="shop-title">PI SKY SHOP</p>
+        <div id="shopItems">
+            <div class="skin-item active" id="skin-Default" onclick="selectSkin('Default')">
+                <span class="skin-name"><span class="skin-icon" style="background:#FFD700;"></span>Vàng (Mặc định)</span>
+                <span class="skin-price">ĐÃ SỞ HỮU</span>
+            </div>
+            <div class="skin-item" id="skin-Flamingo" onclick="buyOrSelectSkin('Flamingo', 1.0)">
+                <span class="skin-name"><span class="skin-icon" style="background:#FF69B4;"></span>Hồng Hạc</span>
+                <span class="skin-price" id="flamingo-price">1.0 π</span>
+            </div>
+        </div>
+        <button id="closeShopBtn">ĐÓNG</button>
+    </div>
+    
+    <div id="adOverlay">
+        <div>ĐANG XEM QUẢNG CÁO...</div>
+        <div id="adTimer">5</div>
+    </div>
+    
     <canvas id="gameCanvas"></canvas>
 
 <script>
-    /* PHẦN LOGIC GAME CỦA BẠN - GIỮ NGUYÊN HOÀN TOÀN */
+    /* PHẦN LOGIC GAME - GIỮ NGUYÊN CẤU TRÚC VÀ THÊM CÁC CHỨC NĂNG MỚI */
     const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score"), highScoreEl = document.getElementById("highScore");
-    const muteBtn = document.getElementById("muteBtn"), leaderboard = document.getElementById("leaderboard");
+    const muteBtn = document.getElementById("muteBtn"), shopBtn = document.getElementById("shopBtn");
+    const leaderboard = document.getElementById("leaderboard"), shopMenu = document.getElementById("shopMenu");
     const lbContent = document.getElementById("lb-content"), restartBtn = document.getElementById("restartBtn");
+    const reviveBtn = document.getElementById("reviveBtn"), closeShopBtn = document.getElementById("closeShopBtn");
+    const adOverlay = document.getElementById("adOverlay"), adTimer = document.getElementById("adTimer");
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -99,10 +172,26 @@
 
     const cfg = { gravity: 0.26, jump: -5.2, gap: 175, speed: 3.0, pipeWidth: 70 };
     let bird = { x: 70, y: canvas.height/2, v: 0 };
-    let pipes = [], clouds = [], score = 0, frameCount = 0, active = false, showMsg = true;
+    let pipes = [], clouds = [], score = 0, frameCount = 0, active = false, showMsg = true, dead = false;
     let hScore = localStorage.getItem("piBirdHScore") || 0;
     highScoreEl.innerText = hScore;
     const melody = [262, 330, 392, 523, 392, 330];
+
+    // Biến màu sắc skin
+    let birdColor = "#FFD700"; // Vàng mặc định
+    let birdStroke = "#B8860B";
+
+    // Cập nhật màu sắc chim dựa trên skin
+    function updateBirdColor() {
+        if (currentSkin === 'Flamingo') {
+            birdColor = "#FF69B4"; // Hồng
+            birdStroke = "#C71585";
+        } else {
+            birdColor = "#FFD700"; // Vàng mặc định
+            birdStroke = "#B8860B";
+        }
+    }
+    updateBirdColor();
 
     let lastTime = 0, accumulator = 0;
     const deltaTime = 1000 / 60;
@@ -112,10 +201,18 @@
     function drawBird() {
         ctx.save(); ctx.translate(bird.x, bird.y);
         ctx.rotate(Math.min(Math.PI/6, Math.max(-Math.PI/6, bird.v * 0.1)));
-        ctx.fillStyle = "#FFD700"; ctx.beginPath(); ctx.ellipse(0, 0, 19, 15, 0, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = "#B8860B"; ctx.lineWidth = 2; ctx.stroke();
+        
+        // Vẽ thân chim (màu thay đổi theo skin)
+        ctx.fillStyle = birdColor; ctx.beginPath(); ctx.ellipse(0, 0, 19, 15, 0, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = birdStroke; ctx.lineWidth = 2; ctx.stroke();
+        
+        // Vẽ cánh (giữ nguyên)
         ctx.fillStyle = "#FFF"; ctx.beginPath(); ctx.ellipse(-6, 2, 11, 7, 0.2, 0, Math.PI*2); ctx.fill();
+        
+        // Vẽ mắt (giữ nguyên)
         ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(11, -6, 3, 0, Math.PI*2); ctx.fill();
+        
+        // Vẽ mỏ (giữ nguyên)
         ctx.fillStyle = "#FF4500"; ctx.beginPath(); ctx.moveTo(16, -2); ctx.lineTo(26, 0); ctx.lineTo(16, 2); ctx.fill();
         ctx.restore();
     }
@@ -131,7 +228,7 @@
     }
 
     function update() {
-        if (!active) return;
+        if (!active || dead) return;
         if (frameCount % 20 === 0) playSfx(melody[(frameCount/20) % melody.length], 'triangle', 0.2, 0.02);
         bird.v += cfg.gravity; bird.y += bird.v;
         if (frameCount % 80 === 0) pipes.push({ x: canvas.width, t: Math.random() * (canvas.height - cfg.gap - 150) + 70, ok: false });
@@ -169,35 +266,200 @@
     }
 
     function endGame() {
-        active = false; playSfx(100, 'sawtooth', 0.5, 0.15);
+        if(dead) return;
+        dead = true; active = false; playSfx(100, 'sawtooth', 0.5, 0.15);
         if (score > hScore) { hScore = score; localStorage.setItem("piBirdHScore", hScore); highScoreEl.innerText = hScore; }
+        
+        // Hiện nút hồi sinh nếu chưa hồi sinh lượt này
+        reviveBtn.style.display = (revivedCount === 0) ? "block" : "none";
+        leaderboard.style.display = "block";
+        muteBtn.style.display = "none";
+        shopBtn.style.display = "none";
         showLeaderboard();
     }
 
     function showLeaderboard() {
-        // Cập nhật tên của bạn vào BXH cho thật
+        // BXH giả lập cho đẹp
         const p = [{ n: "Master 🇰🇷", s: 120 }, { n: currentUser + " 🇻🇳", s: score, isMe: true }, { n: "Pioneer 🇺🇸", s: 45 }, { n: "Node 🇩🇪", s: 32 }].sort((a,b) => b.s - a.s);
         lbContent.innerHTML = p.map((x, i) => `<div style="display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid #eee; ${x.isMe ? 'background:#f0e6ff; font-weight:bold; border-radius:10px;' : ''}"><span>#${i+1} ${x.n}</span><span>${x.s}</span></div>`).join('');
-        leaderboard.style.display = "block";
     }
 
-    function reset() { 
-        bird.y = canvas.height/2; bird.v = 0; pipes = []; score = 0; frameCount = 0; 
-        scoreEl.innerText = 0; leaderboard.style.display = "none"; active = true; showMsg = false; 
+    function reset(isRevive = false) { 
+        dead = false;
+        leaderboard.style.display = "none";
+        muteBtn.style.display = "flex";
+        shopBtn.style.display = "flex";
+        
+        if (isRevive) {
+            // Hồi sinh: giữ điểm, đưa chim về giữa, reset vận tốc
+            bird.y = canvas.height/2; bird.v = 0;
+            // Xóa cột gần nhất để không bị đâm ngay
+            pipes = pipes.filter(p => p.x > bird.x + 200);
+            revivedCount++;
+        } else {
+            // Restart: reset hoàn toàn
+            bird.y = canvas.height/2; bird.v = 0; pipes = []; score = 0; frameCount = 0; 
+            scoreEl.innerText = 0; revivedCount = 0;
+        }
+        
+        active = true; showMsg = false; 
         lastTime = performance.now();
     }
 
     const jump = (e) => {
-        if (e.target.id === 'muteBtn' || e.target.id === 'restartBtn') return;
+        // Chặn jump khi click vào UI
+        if (e.target.id === 'muteBtn' || e.target.id === 'restartBtn' || e.target.id === 'reviveBtn' || e.target.id === 'shopBtn' || shopMenu.style.display === "block") return;
         initAudio();
-        if (!active && showMsg) reset();
-        else if (active) { bird.v = cfg.jump; playSfx(380, 'triangle', 0.2, 0.12, true); }
+        if (!active && showMsg && shopMenu.style.display !== "block") reset();
+        else if (active && !dead) { bird.v = cfg.jump; playSfx(380, 'triangle', 0.2, 0.12, true); }
     };
 
+    // --- CÁC HÀM XỬ LÝ UI MỚI ---
+
+    // Xử lý nút SHOP
+    shopBtn.onclick = (e) => {
+        e.stopPropagation();
+        if (active) return; // Không mở shop khi đang chơi
+        shopMenu.style.display = "block";
+        updateShopUI();
+    };
+
+    // Đóng Shop
+    closeShopBtn.onclick = (e) => {
+        e.stopPropagation();
+        shopMenu.style.display = "none";
+    };
+
+    // Xử lý mua hoặc chọn Skin
+    function buyOrSelectSkin(skinName, price) {
+        if (ownedSkins.includes(skinName)) {
+            // Đã sở hữu -> Chọn skin
+            selectSkin(skinName);
+        } else {
+            // Chưa sở hữu -> Mua skin
+            buySkin(skinName, price);
+        }
+    }
+
+    // Chọn Skin
+    function selectSkin(skinName) {
+        currentSkin = skinName;
+        localStorage.setItem("piBirdCurrentSkin", currentSkin);
+        updateBirdColor();
+        updateShopUI();
+    }
+
+    // Mua Skin bằng Pi
+    async function buySkin(skinName, price) {
+        // Chặn click khi đang giao dịch
+        shopMenu.style.pointerEvents = "none";
+        
+        try {
+            // 3. TẠO THANH TOÁN PI (CREATE PAYMENT)
+            const payment = await Pi.createPayment({
+                amount: price,
+                memo: "Mua Skin Flamingo cho Flappi Sky",
+                metadata: { skinType: skinName, productId: "skin_flamingo" }
+            }, {
+                // Xử lý logic trên Server của bạn
+                onReadyForServerApproval: (paymentId) => { console.log("Giao dịch đang chờ duyệt:", paymentId); },
+                onReadyForServerCompletion: (paymentId, txid) => { console.log("Giao dịch hoàn tất:", paymentId, txid); },
+                onCancel: (paymentId) => { console.log("Đã hủy thanh toán."); },
+                onError: (error, paymentId) => { console.error("Lỗi ví:", error); }
+            });
+
+            // Nếu giao dịch thành công (ở mức Client SDK nhận diện được)
+            // Lưu ý: Giao dịch thực tế cần duyệt ở Server, nhưng ở Testnet ta có thể test logic.
+            if (payment) {
+                ownedSkins.push(skinName);
+                localStorage.setItem("piBirdSkins", JSON.stringify(ownedSkins));
+                alert("Bạn đã mua thành công skin Hồng Hạc!");
+                selectSkin(skinName);
+            }
+            
+        } catch (err) {
+            console.error("Lỗi khi mua skin:", err);
+            alert("Không thể thực hiện thanh toán. Vui lòng kiểm tra ví.");
+        }
+        
+        shopMenu.style.pointerEvents = "auto";
+    }
+
+    // Cập nhật giao diện Shop
+    function updateShopUI() {
+        const skins = ['Default', 'Flamingo'];
+        skins.forEach(s => {
+            const item = document.getElementById(`skin-${s}`);
+            const priceTag = document.getElementById(s === 'Flamingo' ? 'flamingo-price' : '');
+            
+            // Highlight skin đang chọn
+            if (s === currentSkin) { item.classList.add('active'); } 
+            else { item.classList.remove('active'); }
+            
+            // Cập nhật trạng thái 'Đã sở hữu'
+            if (priceTag && ownedSkins.includes(s)) {
+                priceTag.innerText = "ĐÃ SỞ HỮU";
+                priceTag.style.color = "#333";
+            }
+        });
+    }
+
+    // Xử lý nút HỒI SINH
+    reviveBtn.onclick = (e) => {
+        e.stopPropagation();
+        showReviveAd();
+    };
+
+    // Hiện quảng cáo giả lập để hồi sinh
+    function showReviveAd() {
+        reviveBtn.style.pointerEvents = "none";
+        adOverlay.style.display = "flex";
+        leaderboard.style.display = "none";
+        
+        let count = 5;
+        adTimer.innerText = count;
+        
+        const timer = setInterval(() => {
+            count--;
+            adTimer.innerText = count;
+            
+            if (count === 0) {
+                clearInterval(timer);
+                completeRevive();
+            }
+        }, 1000);
+        
+        // --- 4. TÍCH HỢP PI ADS SDK (TRONG TƯƠNG LAI) ---
+        // Khi Pi ra SDK chính thức, bạn sẽ gọi:
+        // Pi.ads.show({
+        //     type: 'interstitial', // Quảng cáo toàn màn hình
+        //     onComplete: completeRevive, // Thành công
+        //     onSkip: () => { alert("Bạn phải xem hết QC để hồi sinh."); cancelAd(); }, // Bỏ qua
+        //     onError: (err) => { console.error("Lỗi QC:", err); completeRevive(); } // Lỗi (vẫn cho hồi sinh)
+        // });
+        // --- --- ---
+    }
+    
+    // Hồi sinh thành công sau khi xem QC
+    function completeRevive() {
+        adOverlay.style.display = "none";
+        alert("Bạn đã được hồi sinh! Nhấn TAP để chơi tiếp.");
+        reset(true); // reset ở chế độ hồi sinh
+        reviveBtn.style.pointerEvents = "auto";
+    }
+    
+    // Hủy xem quảng cáo
+    function cancelAd() {
+        adOverlay.style.display = "none";
+        leaderboard.style.display = "block";
+        reviveBtn.style.pointerEvents = "auto";
+    }
+
+    // --- PHẦN ĐIỀU KHIỂN GIỮ NGUYÊN ---
     muteBtn.onclick = (e) => { isMuted = !isMuted; muteBtn.innerText = isMuted ? "🔇" : "🔊"; e.stopPropagation(); };
     restartBtn.onclick = (e) => { reset(); e.stopPropagation(); };
     window.onmousedown = jump;
-    window.ontouchstart = (e) => { if (e.target.id !== 'muteBtn' && e.target.id !== 'restartBtn') e.preventDefault(); jump(e); };
+    window.ontouchstart = (e) => { if (e.target.id !== 'muteBtn' && e.target.id !== 'restartBtn' && e.target.id !== 'shopBtn' && e.target.id !== 'reviveBtn' && shopMenu.style.display !== "block") e.preventDefault(); jump(e); };
 
     function loop(currentTime) {
         if (!lastTime) lastTime = currentTime;
